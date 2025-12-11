@@ -69,7 +69,7 @@ const LandingNav: React.FC<{ onStart: () => void }> = ({ onStart }) => {
 
 const Hero: React.FC<{ onStart: () => void }> = ({ onStart }) => {
     return (
-        <div className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+        <div className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-[#FAFAFA] dark:bg-[#050505]">
             {/* Ambient Background Effects */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none opacity-50 dark:opacity-100">
                  <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-[100px] animate-blob"></div>
@@ -186,8 +186,8 @@ const Hero: React.FC<{ onStart: () => void }> = ({ onStart }) => {
                 </div>
             </div>
 
-            {/* Gradient Bridge to HowItWorks */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-b from-transparent to-white dark:to-[#0C0C0C] pointer-events-none"></div>
+            {/* Gradient Bridge to HowItWorks (Matches HowItWorks BG) */}
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-white dark:to-[#0C0C0C] pointer-events-none"></div>
         </div>
     );
 };
@@ -323,8 +323,8 @@ const HowItWorks: React.FC = () => {
                 </div>
             </div>
 
-            {/* Gradient Bridge to Benefits */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-b from-transparent to-[#F4F4F5] dark:to-[#09090B] pointer-events-none"></div>
+            {/* Gradient Bridge to Benefits (Matches Benefits BG) */}
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-[#F4F4F5] dark:to-[#09090B] pointer-events-none"></div>
         </div>
     );
 };
@@ -493,8 +493,8 @@ const Benefits: React.FC = () => {
                 )}
             </div>
 
-            {/* Gradient Bridge to ControlDemo */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-b from-transparent to-[#050505] pointer-events-none"></div>
+            {/* Gradient Bridge to ControlDemo (Matches ControlDemo BG) */}
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-white dark:to-[#050505] pointer-events-none"></div>
         </div>
     );
 };
@@ -549,10 +549,10 @@ const ControlDemo: React.FC = () => {
     }, []);
 
     return (
-        <div className="bg-[#050505] py-24 md:py-32 px-4 md:px-8 border-t border-white/5 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#050505] py-24 md:py-32 px-4 md:px-8 relative overflow-hidden transition-colors duration-500">
              
              {/* Main Card Container with Revolving Gradient Border */}
-             <div className="max-w-7xl mx-auto relative group rounded-[2.5rem] p-[1px] overflow-hidden">
+             <div className="max-w-7xl mx-auto relative group rounded-[2.5rem] p-[1px] overflow-hidden shadow-[0_-50px_100px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_-50px_100px_-20px_rgba(0,0,0,0.8)] transform transition-transform duration-500 hover:scale-[1.01]">
                 
                 {/* Spinning Conic Gradient for "Revolving Light Flow" */}
                 <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0%,#2563EB_30%,#9333EA_60%,#DB2777_90%,transparent_100%)] animate-[spin_4s_linear_infinite] opacity-100" />
@@ -561,18 +561,18 @@ const ControlDemo: React.FC = () => {
                 <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0%,#2563EB_30%,#9333EA_60%,#DB2777_90%,transparent_100%)] animate-[spin_4s_linear_infinite] opacity-60 blur-3xl" />
 
                 {/* Inner Content Card (Black Background) */}
-                <div className="relative bg-[#080808] rounded-[2.5rem] h-full p-8 md:p-16 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <div className="relative bg-white dark:bg-[#080808] rounded-[2.5rem] h-full p-8 md:p-16 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center transition-colors duration-500">
                     
                      {/* Left: Text */}
                      <div className="text-center lg:text-left">
-                         <h2 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1] mb-6">
+                         <h2 className="text-5xl md:text-7xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1] mb-6">
                              Don't just read it.<br />
                              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 animate-gradient-x">Control it.</span>
                          </h2>
-                         <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                         <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                              Why memorize a formula when you can adjust the variables and see the results? StudySim generates physics-accurate environments in seconds.
                          </p>
-                         <button className="bg-white text-black px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-200 transition-colors inline-flex items-center gap-2 transform hover:scale-105 duration-300">
+                         <button className="bg-black text-white dark:bg-white dark:text-black px-8 py-4 rounded-full font-bold text-lg hover:opacity-80 transition-all inline-flex items-center gap-2 transform hover:scale-105 duration-300 shadow-lg">
                              Interactive Demo <ArrowRight size={20} />
                          </button>
                      </div>
@@ -580,12 +580,15 @@ const ControlDemo: React.FC = () => {
                      {/* Right: Window Visual */}
                      <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
                          {/* Window Container */}
-                         <div className="bg-[#111] border border-[#333] border-t-white/10 rounded-xl overflow-hidden shadow-2xl relative">
+                         <div className="bg-gray-100 dark:bg-[#111] border border-gray-200 dark:border-[#333] rounded-xl overflow-hidden shadow-2xl relative transition-colors duration-500">
                              {/* Title Bar */}
-                             <div className="bg-[#1a1a1a] px-4 py-3 flex items-center gap-2 border-b border-[#333]">
-                                 <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                                 <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                                 <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                             <div className="bg-gray-200 dark:bg-[#1a1a1a] px-4 py-3 flex items-center gap-2 border-b border-gray-300 dark:border-[#333] transition-colors duration-500">
+                                 <div className="w-3 h-3 rounded-full bg-[#ff5f56] shadow-sm"></div>
+                                 <div className="w-3 h-3 rounded-full bg-[#ffbd2e] shadow-sm"></div>
+                                 <div className="w-3 h-3 rounded-full bg-[#27c93f] shadow-sm"></div>
+                                 <div className="ml-2 px-2 py-0.5 rounded bg-white/50 dark:bg-white/10 text-[10px] text-gray-500 dark:text-gray-400 font-mono">
+                                     sim_engine.html
+                                 </div>
                              </div>
                              
                              {/* Content Area */}
@@ -595,16 +598,16 @@ const ControlDemo: React.FC = () => {
                                  {/* Bottom Controls Overlay */}
                                  <div className="absolute bottom-8 left-8 right-8 flex gap-4">
                                       {/* Slider 1 */}
-                                      <div className="flex-1 bg-[#222] h-1.5 rounded-full overflow-hidden">
-                                          <div className="h-full w-[40%] bg-[#facc15]"></div> {/* Yellow */}
+                                      <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden backdrop-blur-sm">
+                                          <div className="h-full w-[40%] bg-[#facc15] shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
                                       </div>
                                       {/* Slider 2 */}
-                                      <div className="flex-1 bg-[#222] h-1.5 rounded-full overflow-hidden">
-                                          <div className="h-full w-[70%] bg-[#4ade80]"></div> {/* Green */}
+                                      <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden backdrop-blur-sm">
+                                          <div className="h-full w-[70%] bg-[#4ade80] shadow-[0_0_10px_rgba(74,222,128,0.5)]"></div>
                                       </div>
                                       {/* Slider 3 */}
-                                      <div className="flex-1 bg-[#222] h-1.5 rounded-full overflow-hidden">
-                                          <div className="h-full w-[50%] bg-[#3b82f6]"></div> {/* Blue */}
+                                      <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden backdrop-blur-sm">
+                                          <div className="h-full w-[50%] bg-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
                                       </div>
                                  </div>
                              </div>
@@ -612,6 +615,9 @@ const ControlDemo: React.FC = () => {
                      </div>
                 </div>
              </div>
+             
+             {/* Gradient Bridge to FAQ (Matches FAQ BG) */}
+             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-white dark:to-[#0C0C0C] pointer-events-none"></div>
         </div>
     );
 };
@@ -721,31 +727,32 @@ const FAQ: React.FC = () => {
                      )}
                 </div>
              </div>
+             
+             {/* Gradient Bridge to Footer (Matches Footer BG) */}
+             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-b from-transparent to-zinc-50 dark:to-black pointer-events-none"></div>
         </div>
     );
 };
 
 const Footer: React.FC = () => {
     return (
-        <footer className="relative bg-zinc-50 dark:bg-black py-24 md:py-32 overflow-visible transition-colors duration-500 border-t border-transparent dark:border-white/5">
-            {/* Seamless Blend Gradient (Top) - Reaches up into previous section */}
-            <div className="absolute -top-32 left-0 w-full h-32 bg-gradient-to-t from-zinc-50 to-transparent dark:from-black dark:to-transparent pointer-events-none" />
-
-            {/* The Data Core (Background Glow) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[400px] pointer-events-none z-0">
-                {/* Dark Mode Core: Cyan/Lime Nebula */}
-                <div className="hidden dark:block absolute inset-0 bg-gradient-to-r from-lime-500/20 via-cyan-500/20 to-lime-500/20 blur-[100px] rounded-full animate-pulse" />
-                
-                {/* Light Mode Core: Purple/Blue Pastel */}
-                <div className="block dark:hidden absolute inset-0 bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-purple-500/10 blur-[80px] rounded-full animate-pulse" />
-            </div>
-            
-            {/* Grid Overlay Texture (Subtle) */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-20 pointer-events-none" 
+        <footer className="relative bg-zinc-50 dark:bg-black py-24 md:py-32 overflow-hidden transition-colors duration-500">
+            {/* 1. Grid Background with Masking */}
+            <div className="absolute inset-0 z-0 pointer-events-none"
                  style={{ 
-                     backgroundImage: 'linear-gradient(#999 1px, transparent 1px), linear-gradient(90deg, #999 1px, transparent 1px)', 
-                     backgroundSize: '40px 40px' 
+                     backgroundImage: 'linear-gradient(to right, #80808012 1px, transparent 1px), linear-gradient(to bottom, #80808012 1px, transparent 1px)',
+                     backgroundSize: '24px 24px',
+                     maskImage: 'linear-gradient(to bottom, transparent, black 20%, black 100%)',
+                     WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 20%, black 100%)' 
                  }}>
+            </div>
+
+            {/* 2. Blue Mist Overlay (Top Boundary Softening) */}
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none z-0"></div>
+
+            {/* The Data Core (Background Glow) - Adjusted for Blue/Purple */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] h-[300px] pointer-events-none z-0">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 blur-[100px] rounded-full animate-pulse" />
             </div>
 
             {/* Content Container */}
@@ -756,17 +763,16 @@ const Footer: React.FC = () => {
                     Visualized by
                 </p>
 
-                {/* Hero Name with Gradient Animation */}
-                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-10 tracking-tight 
+                {/* 3. Fixed Name Styling (Clipping & Colors) */}
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-10 tracking-tight pb-4 leading-normal
                     text-transparent bg-clip-text 
-                    bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 
-                    dark:from-lime-400 dark:via-cyan-400 dark:to-lime-400 
+                    bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600
                     bg-[length:200%_auto] animate-gradient-x 
-                    hover:scale-[1.02] transition-transform duration-500 cursor-default select-none drop-shadow-sm dark:drop-shadow-[0_0_15px_rgba(163,230,53,0.3)]">
+                    hover:scale-[1.02] transition-transform duration-500 cursor-default select-none drop-shadow-sm dark:drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">
                     Bhagya Asati
                 </h1>
 
-                {/* Social Links */}
+                {/* 4. Social Links (Updated Hover Colors) */}
                 <div className="flex flex-col sm:flex-row gap-4 items-center animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 relative z-20">
                     
                     {/* LinkedIn Button */}
@@ -776,7 +782,7 @@ const Footer: React.FC = () => {
                         rel="noopener noreferrer"
                         className="group flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all duration-300
                         bg-white border-zinc-300 text-zinc-800 hover:border-blue-500 hover:text-blue-600 hover:shadow-lg
-                        dark:bg-zinc-900/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-blue-400 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                        dark:bg-zinc-900/50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-cyan-400 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(34,211,238,0.2)]"
                     >
                         <Linkedin size={18} className="group-hover:scale-110 transition-transform" />
                         <span className="text-sm font-bold tracking-wide">Connect</span>
@@ -789,7 +795,7 @@ const Footer: React.FC = () => {
                         rel="noopener noreferrer"
                         className="group flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all duration-300
                         bg-white border-zinc-300 text-zinc-800 hover:border-purple-500 hover:text-purple-600 hover:shadow-lg
-                        dark:bg-zinc-900/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-lime-400 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(163,230,53,0.2)]"
+                        dark:bg-zinc-900/50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-purple-400 dark:hover:text-white dark:hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]"
                     >
                         <Github size={18} className="group-hover:scale-110 transition-transform" />
                         <span className="text-sm font-bold tracking-wide">Connect</span>
