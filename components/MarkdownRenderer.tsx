@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface Props {
   content: string;
@@ -15,13 +16,9 @@ declare global {
 const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => {
   const isChat = variant === 'chat';
 
-  // --- Helper: Parse Inline (Bold + Inline Math) ---
+  // --- Helper: Parse Inline (Bold + Inline Math + Links) ---
   const parseInline = (text: string) => {
     // 1. Split by inline math ($...$)
-    // 2. Split by bold (**...**)
-    // Note: This is a basic parser. It assumes no nested math in bold or vice versa for simplicity.
-    
-    // Split by $...$ first (Inline Math)
     const mathParts = text.split(/(\$[^$]+\$)/g);
     
     return mathParts.map((part, i) => {
@@ -39,33 +36,55 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
         }
       }
 
-      // Not math, parse bold
-      const boldParts = part.split(/(\*\*.*?\*\*)/g);
+      // 2. Parse Links [text](url)
+      const linkParts = part.split(/(\[[^\]]+\]\([^)]+\))/g);
       return (
-        <React.Fragment key={i}>
-            {boldParts.map((subPart, j) => {
-                if (subPart.startsWith('**') && subPart.endsWith('**')) {
-                    return (
-                        <strong key={j} className={`font-black ${isChat ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                            {subPart.slice(2, -2)}
-                        </strong>
-                    );
-                }
-                return <span key={j}>{subPart}</span>;
-            })}
-        </React.Fragment>
+          <React.Fragment key={i}>
+              {linkParts.map((subPart, j) => {
+                  const linkMatch = subPart.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+                  if (linkMatch) {
+                      return (
+                          <a 
+                            key={j} 
+                            href={linkMatch[2]} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-primary hover:underline font-medium"
+                          >
+                              {linkMatch[1]}
+                          </a>
+                      );
+                  }
+
+                  // 3. Parse Bold (**text**)
+                  const boldParts = subPart.split(/(\*\*.*?\*\*)/g);
+                  return (
+                    <React.Fragment key={j}>
+                        {boldParts.map((boldPart, k) => {
+                            if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
+                                return (
+                                    <strong key={k} className={`font-black ${isChat ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                                        {boldPart.slice(2, -2)}
+                                    </strong>
+                                );
+                            }
+                            return <span key={k}>{boldPart}</span>;
+                        })}
+                    </React.Fragment>
+                  );
+              })}
+          </React.Fragment>
       );
     });
   };
 
   // --- BLOCK PARSER ---
-  // Convert lines into blocks (Heading, Table, Math, Blockquote, Paragraph, List)
   const lines = content.replace(/\\n/g, '\n').split('\n');
   const blocks: any[] = [];
   
   let i = 0;
   while (i < lines.length) {
-      const line = lines[i].trimEnd(); // Trim end to keep indentation potentially? Actually let's just trim
+      const line = lines[i].trimEnd();
       const trimmed = line.trim();
 
       if (!trimmed) {
@@ -76,7 +95,6 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
       // 1. Block Math ($$)
       if (trimmed.startsWith('$$')) {
           let mathContent = trimmed.replace('$$', '');
-          // If $$ is alone or start of block, collect until next $$
           if (trimmed === '$$' || !trimmed.endsWith('$$') || trimmed.length === 2) {
              let j = i + 1;
              while (j < lines.length) {
@@ -88,9 +106,8 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
                  mathContent += '\n' + lines[j];
                  j++;
              }
-             if (j === lines.length) i = j; // End of file
+             if (j === lines.length) i = j;
           } else {
-             // Single line block math: $$ E=mc^2 $$
              mathContent = trimmed.slice(2, -2);
           }
           blocks.push({ type: 'math', content: mathContent });
@@ -101,7 +118,6 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
       // 2. Tables
       if (trimmed.startsWith('|')) {
           const rows = [];
-          // Collect all consecutive lines starting with |
           let j = i;
           while (j < lines.length && lines[j].trim().startsWith('|')) {
               rows.push(lines[j].trim());
@@ -126,7 +142,7 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
           i++; continue;
       }
 
-      // 4. Blockquotes (> )
+      // 4. Blockquotes
       if (line.startsWith('> ')) {
           blocks.push({ type: 'blockquote', content: line.replace('> ', '') });
           i++; continue;
@@ -143,7 +159,22 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
           i++; continue;
       }
 
-      // 6. Default Paragraph
+      // 6. Image Placeholder
+      const placeholderMatch = trimmed.match(/^\[(IMAGE_PLACEHOLDER|IMAGE):\s*(.*?)\]$/i);
+      if (placeholderMatch) {
+           const content = placeholderMatch[2].replace(/^"|"$/g, '');
+           blocks.push({ type: 'image_placeholder', content });
+           i++; continue;
+      }
+
+      // 7. Standard Images ![alt](url)
+      const imageMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
+      if (imageMatch) {
+          blocks.push({ type: 'image', alt: imageMatch[1], src: imageMatch[2] });
+          i++; continue;
+      }
+
+      // 8. Default Paragraph
       blocks.push({ type: 'p', content: line });
       i++;
   }
@@ -200,6 +231,28 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
                              <p className="flex-1">{parseInline(block.content)}</p>
                          </div>
                      );
+                case 'image':
+                     return (
+                         <div key={idx} className="my-6 w-full flex justify-center">
+                             <img 
+                                 src={block.src} 
+                                 alt={block.alt} 
+                                 className="rounded-xl shadow-lg max-h-[500px] object-contain bg-black/5 dark:bg-white/5 border border-border" 
+                                 loading="lazy"
+                             />
+                         </div>
+                     );
+                case 'image_placeholder':
+                    return (
+                        <div key={idx} className="my-6 p-6 bg-surface-highlight border-2 border-dashed border-border rounded-xl flex flex-col items-center text-center gap-3 group hover:border-primary/50 transition-colors">
+                            <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors shadow-sm">
+                                <ImageIcon size={24} />
+                            </div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 italic max-w-lg">
+                                {block.content}
+                            </p>
+                        </div>
+                    );
                 case 'math':
                     try {
                          const latex = block.content;
@@ -217,9 +270,7 @@ const MarkdownRenderer: React.FC<Props> = ({ content, variant = 'default' }) => 
                     }
                 case 'table':
                      const rows = block.rows as string[];
-                     // Basic Parse: Split by |
                      const parsedRows = rows.map(r => r.split('|').filter(c => c.trim() !== '').map(c => c.trim()));
-                     // Header is usually first row, Separator is second (contains ---)
                      const hasHeader = parsedRows.length > 1 && parsedRows[1][0].includes('---');
                      const headerRow = hasHeader ? parsedRows[0] : null;
                      const bodyRows = hasHeader ? parsedRows.slice(2) : parsedRows;

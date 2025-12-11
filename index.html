@@ -85,6 +85,111 @@
       .animation-delay-4000 {
         animation-delay: 4s;
       }
+
+      /* --- PRINT MEDIA OPTIMIZATIONS --- */
+      @media print {
+        @page {
+          margin: 15mm;
+          size: auto;
+        }
+
+        /* 1. FORCE BLACK TEXT & RESET */
+        *, *::before, *::after {
+          color: #000000 !important;
+          text-shadow: none !important;
+          box-shadow: none !important;
+          background-color: transparent !important;
+          background-image: none !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        /* 2. HIDE UI CHROME */
+        /* Targets the AppNavbar (first child of container) and generic UI */
+        .app-container > div:first-child,
+        nav, 
+        button, 
+        input, 
+        textarea, 
+        select, 
+        .no-print, 
+        [role="button"] {
+          display: none !important;
+        }
+
+        /* 3. LAYOUT RESET */
+        body, #root, .app-container, main {
+          display: block !important;
+          position: static !important;
+          width: 100% !important;
+          height: auto !important;
+          overflow: visible !important;
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* 4. CONTENT VISIBILITY & FLOW */
+        #markdown-content {
+          display: block !important;
+          width: 100% !important;
+        }
+
+        .modern-card {
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+        }
+
+        /* Fix scroll clipping */
+        .overflow-y-auto, .overflow-hidden, .custom-scrollbar {
+          overflow: visible !important;
+          height: auto !important;
+        }
+
+        /* 5. PAGE BREAK HANDLING */
+        h1, h2, h3, h4 {
+          break-after: avoid !important;
+          page-break-after: avoid !important;
+          color: #000 !important;
+          border-bottom: 1px solid #000 !important;
+        }
+
+        p, li, span, div {
+          color: #000 !important;
+        }
+
+        table, figure, img, blockquote, pre {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+
+        img {
+          max-width: 100% !important;
+        }
+
+        /* 6. TABLE STRUCTURE FOR PRINT */
+        table {
+          width: 100% !important;
+          border: 1px solid #000 !important;
+        }
+        th, td {
+          border: 1px solid #000 !important;
+          padding: 6px !important;
+        }
+
+        /* 7. MATH FIXES */
+        .katex-display {
+          overflow-x: hidden !important;
+          overflow-y: hidden !important;
+        }
+        
+        /* 8. LINKS */
+        a {
+          text-decoration: underline !important;
+          color: #000 !important;
+        }
+      }
     </style>
     <script>
       tailwind.config = {

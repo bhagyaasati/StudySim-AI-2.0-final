@@ -1,8 +1,14 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { StudyPlan, StudyResult, QuizQuestion, DeepDiveMessage } from '../types';
 
-// Ensure API Key is present (environment variable logic handled by runtime, but we use process.env.API_KEY)
+// --- UTILITIES ---
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const logProgress = (stage: string, percent: string) => {
+    console.log(`[StudySim Pipeline] ${stage} - Progress: ${percent}`);
+};
+
+// Ensure API Key is present
 const getAiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
@@ -13,7 +19,6 @@ const generateContentWithFallback = async (model: string, params: any): Promise<
     try {
         return await ai.models.generateContent({ ...params, model });
     } catch (error: any) {
-        // Fallback to flash if Pro/Preview fails (e.g. 404 Not Found due to permissions)
         if (error.message?.includes("404") || error.message?.includes("not found")) {
             console.warn(`Model ${model} failed, falling back to gemini-2.5-flash`);
             return await ai.models.generateContent({ ...params, model: 'gemini-2.5-flash' });
@@ -22,17 +27,19 @@ const generateContentWithFallback = async (model: string, params: any): Promise<
     }
 };
 
-// --- OPTIMIZED FACT RETRIEVAL (Single Search Strategy) ---
+// --- STAGE 1: DEEP RESEARCH (0% - 30%) ---
 export interface TopicFacts {
     facts: string[];
     searchContext: string;
 }
 
 export const getInterestingFacts = async (topic: string): Promise<TopicFacts> => {
-    const ai = getAiClient();
-    const model = 'gemini-2.5-flash'; // Fast model for initial search
+    logProgress("Stage 1: Deep Research (Fact Gathering)", "10%");
+    await sleep(1500); // Artificial delay for UI smoothness
 
-    // UPDATED: Explicitly ask for JSON in the prompt text, as JSON mode + Tools is restricted
+    const ai = getAiClient();
+    const model = 'gemini-2.5-flash'; 
+
     const prompt = `
     Perform a Google Search for the topic: "${topic}".
     
@@ -59,84 +66,59 @@ export const getInterestingFacts = async (topic: string): Promise<TopicFacts> =>
         });
 
         let text = response.text || "{}";
-        
-        // Cleaning: Sometimes models still wrap JSON in markdown blocks
         const match = text.match(/```json([\s\S]*?)```/) || text.match(/```([\s\S]*?)```/);
         if (match) {
             text = match[1];
         }
 
+        logProgress("Stage 1: Research Complete", "30%");
         return JSON.parse(text) as TopicFacts;
     } catch (e) {
         console.error("Fact Fetch Error", e);
-        // Fallback if search fails
         return { facts: ["Learning is a journey.", "Stay curious.", "Knowledge is power."], searchContext: "" };
     }
 };
 
-// Step 1: Analyze & Verify (Concept Verification & Background Processing)
+// --- STAGE 2: ARCHITECTURE & DRAFTING (30% - 70%) ---
 export const analyzeStudyTopic = async (
   input: string,
   mediaData?: { data: string; mimeType: string },
   isVideoAnalysis: boolean = false,
-  searchContext?: string // NEW: Optional pre-fetched context
+  searchContext?: string
 ): Promise<StudyPlan> => {
-  // Using gemini-3-pro-preview with thinking for deep background processing
+  logProgress("Stage 2: Drafting Simulator Strategy", "35%");
+  await sleep(2000); 
+
   const model = 'gemini-3-pro-preview';
 
   let systemPrompt = `
-  You are "StudySim AI" - Phase 1: Background Processor & Architect.
+  You are "StudySim AI" - Phase 2: Architect.
   
-  Your goal is to perform a DEEP, SILENT BACKGROUND ANALYSIS to create a robust SPECIFICATION for a learning module and a 'Real-Life Simulator'.
+  Your goal is to convert the user's topic into a "Game Design Document" for an interactive HTML5 simulator.
+  
+  ### CRITICAL REQUIREMENT: SPATIAL GRID SYSTEM
+  You must plan the simulator layout using this strict coordinate system:
+  - **INPUTS (x=150)**: Where sliders, toggles, and controls live.
+  - **LOGIC (x=400)**: Where the transformation, physics, or main subject is visualized.
+  - **OUTPUTS (x=650)**: Where graphs, meters, or results are displayed.
+  
+  You must explicitly plan to DRAW WIRES (\`ctx.lineTo\`) connecting these zones to visualize the flow of information or physics.
+
+  ### OUTPUT FORMAT
+  Return a structured Markdown plan with headers:
+  ## 🧐 Analysis & Context
+  ## 🎮 Simulator Concept (Game Design Document)
+  ## 🎨 Visual Identity
+  ## 🔍 Verified Sources
   `;
 
-  // Inject Context if available to avoid redundant search
   if (searchContext) {
       systemPrompt += `
-      ### CONTEXT FROM WEB SEARCH
-      Use the following verified context as your primary source of truth:
+      ### CONTEXT FROM STAGE 1
+      Use this verified context as your primary source of truth:
       "${searchContext}"
-      
-      (Do not perform a new Google Search unless absolutely necessary for specific missing details).
       `;
   }
-
-  systemPrompt += `
-  ### BACKGROUND PROCESSING REQUIREMENTS (Execute Silently)
-  1. **Autonomous Concept Analysis**:
-     - Evaluate the user's idea for flaws, missing logic, or weak structure.
-     - Identify opportunities for improvement immediately.
-  2. **Visual System Quality Check**:
-     - Verify typography, UI elements, and color themes.
-     - If they fail clarity/aesthetics, AUTOMATICALLY REDESIGN them to meet professional standards.
-  3. **Inspiration Retrieval**:
-     - If context is missing, use Google Search to find reference patterns.
-  4. **Technical Planning (CRITICAL)**:
-     - Define the simulator's logic for HTML5/Canvas/CSS implementation.
-     - **MANDATORY INTERACTIVITY**: You MUST identify at least 3 adjustable variables (e.g., Gravity, Speed, Temperature, Angle).
-     - **UI CONTROLS**: Define specific HTML input controls (Range Sliders, Toggle Switches, Reset Buttons) that the user will use to manipulate these variables in real-time.
-     - The simulation MUST be designed to use \`requestAnimationFrame\` and update immediately when controls change.
-     - Emphasize CSS for high-quality UI and animations.
-  5. **Visual Excellence Enforcement**:
-     - Refine color psychology (e.g., "Calming Teal" for focus, "Energetic Orange" for gamification).
-  6. **Internal Iteration**:
-     - Review your own plan twice before outputting.
-  
-  ### OUTPUT FORMAT (The Stable Foundation)
-  Return a structured Markdown plan with these headers:
-  
-  ## 🧐 Analysis & Context
-  (Overview of the topic, addressing any identified flaws or improvements)
-  
-  ## 🎮 Simulator Concept
-  (Technical specification: List of Interactive Controls (Sliders/Buttons), Physics Logic, Interaction Flow, Visual feedback. Be specific about the HTML5 implementation.)
-  
-  ## 🎨 Visual Identity
-  (Defined Typography, Specific Hex Colors, Layout Structure, and "Vibe". This is the blueprint for the code.)
-  
-  ## 🔍 Verified Sources
-  (List credible sources found during research)
-  `;
 
   const parts: any[] = [];
   
@@ -147,18 +129,12 @@ export const analyzeStudyTopic = async (
         mimeType: mediaData.mimeType
       }
     });
-    if (isVideoAnalysis) {
-        parts.push({ text: "Analyze this video context as the primary source material." });
-    } else {
-        parts.push({ text: "Analyze this image as the primary source material." });
-    }
+    parts.push({ text: isVideoAnalysis ? "Analyze this video context." : "Analyze this image." });
   }
 
   parts.push({ text: input || "Analyze the provided media." });
 
-  // Configure tools: If we have context, we might skip googleSearch to optimize, 
-  // but keeping it enabled as a fallback is safe unless strict 1-call is enforced.
-  // To strictly follow "ONE web search per topic" requested by user, we disable it if context exists.
+  // Use search if context is missing, otherwise rely on Stage 1 context
   const tools = searchContext ? [] : [{ googleSearch: {} }];
 
   try {
@@ -166,9 +142,8 @@ export const analyzeStudyTopic = async (
       contents: { parts },
       config: {
         systemInstruction: systemPrompt,
-        tools: tools,
-        // Enable thinking for the "Silent Iteration" and "Quality Check" requirements
         thinkingConfig: { thinkingBudget: 16384 }, 
+        tools
       },
     });
 
@@ -178,6 +153,7 @@ export const analyzeStudyTopic = async (
       .filter((c: any) => c.web?.uri)
       .map((c: any) => ({ title: c.web.title, uri: c.web.uri }));
 
+    logProgress("Stage 2: Architecture Approved", "60%");
     return { markdownPlan: text, sources };
   } catch (error) {
     console.error("Study Analysis Error:", error);
@@ -185,120 +161,141 @@ export const analyzeStudyTopic = async (
   }
 };
 
-// Step 2: Finalize & Build (Code Generation - Notes Only)
+// --- INTERMEDIATE: CONTENT GENERATION ---
 export const finalizeStudyPackage = async (
   approvedPlan: string,
   originalInput: string
 ): Promise<StudyResult> => {
+  logProgress("Generating Content", "65%");
   const model = 'gemini-3-pro-preview';
 
   const systemPrompt = `
-  You are "StudySim AI" - Phase 2: Content Author.
-  
-  You have received an APPROVED, VERIFIED PLAN. Your job is to generate the HIGH-QUALITY SMART NOTES.
-  
-  ### INSTRUCTIONS
-  1. **Generate Smart Notes**:
-     - Based on the plan, write the "## 🧠 Smart Notes" section.
-     - **CRITICAL FORMATTING RULES**: 
-       - **MATH**: You MUST use standard LaTeX format with double dollar signs ($$ ... $$) for block equations and single dollar sign ($ ... $) for inline equations. 
-       - **DEFINITIONS**: You MUST use **Blockquotes** (\`> \`) for key text definitions and important takeaways only.
-     - Use bolding for emphasis, but do not use list markers (*) or hash headers (#) inside the text flow. Use standard Markdown headers for sections.
-     - Include a "Key Concepts" summary at the top.
-     - Structure with clear headings (H1, H2, H3).
-     - Ensure the content is detailed, accurate, and educational.
-     - DO NOT generate any HTML code or Simulator code in this step.
+  # STAGE 1: MASTER EDUCATIONAL CONTENT GENERATOR
+
+  # INPUT TOPIC
+  Topic: "${originalInput}" (Difficulty Level: Comprehensive)
+
+  # GOAL
+  Generate a high-quality, textbook-grade study guide. 
+  You must prioritize **READABILITY** and **CLEAN FORMATTING** above all else.
+
+  # STRICT FORMATTING RULES (CRITICAL)
+  1. **NO WEIRD SYMBOLS:** - DO NOT use symbols like ◼, ◆, ❖, ⬢, ▓. 
+     - **ONLY use asterisks (*)** for bullet points.
+     - Example: 
+       * Point 1
+       * Point 2
+
+  2. **MATHEMATICS & FORMULAS:**
+     - **NO DUPLICATION:** Never write "Vf Vf". Write clearly.
+     - **USE LATEX:** Enclose all math in single dollar signs \`$\`.
+     - Correct: "The voltage is $V = I \\times R$."
+     - Incorrect: "V = I x R" or "V (V) = ...".
+
+  3. **SECTION STRUCTURE:**
+     - **Section 1: Deep Dive** (Detailed explanation, tables, "Why" and "How").
+     - **Section 2: Short Notes** (Rapid revision, keywords, key formulas).
+
+  4. **VISUAL PLACEHOLDERS:**
+     - Do not generate ASCII art.
+     - Use tags like: \`[IMAGE: Diagram of a Diode]\` where appropriate.
+
+  # OUTPUT CONTENT
+  Generate the content now, following the rules above strictly.
   `;
 
   try {
     const response = await generateContentWithFallback(model, {
       contents: { 
         parts: [
-          { text: `Original Topic: ${originalInput}` },
-          { text: `Approved Architecture Plan:\n${approvedPlan}` },
-          { text: "Proceed to generate the Smart Notes." }
+          { text: `APPROVED PLAN:\n${approvedPlan}` },
+          { text: "Proceed to generate the Study Guide." }
         ] 
       },
       config: {
         systemInstruction: systemPrompt,
-        // Reduced thinking budget for text generation
-        thinkingConfig: { thinkingBudget: 16384 }, 
+        thinkingConfig: { thinkingBudget: 8192 }, 
       },
     });
 
-    const text = response.text || "No content generated.";
-    
-    return { markdown: text, simulatorCode: "" };
+    logProgress("Content Generated", "70%");
+    return { markdown: response.text || "No content.", simulatorCode: "" };
   } catch (error) {
     console.error("Study Build Error:", error);
     throw error;
   }
 };
 
-// Step 3: Generate Simulator (On Demand)
+// --- STAGE 3: AUTOMATED QA & STRESS TEST (70% - 100%) ---
 export const generateStudySimulator = async (
   approvedPlan: string,
-  smartNotes: string
+  smartNotes: string,
+  customInstruction: string = ""
 ): Promise<string> => {
+  logProgress("Stage 3: Coding & Automated QA", "75%");
+  await sleep(2000); // Artificial delay for "Coding" feel
+
   const model = 'gemini-3-pro-preview';
 
   const systemPrompt = `
   You are "StudySim AI" - Phase 3: Simulator Architect.
   
-  You have received a specific request to build an Interactive Simulator.
-  A FULL RESEARCH BUNDLE (Plan + Context + Notes) is attached to this request.
+  Your goal is to write a robust, SINGLE-FILE HTML5/Canvas simulation that looks like a high-end educational app (Apple-style design).
   
-  ### INSTRUCTIONS
-  1. **Generate The Simulator**:
-     - Write the SINGLE-FILE HTML5 application (HTML+CSS+JS).
-     - **Constraint**: IT MUST MATCH the "Visual Identity" and "Simulator Concept" from the attached RESEARCH BUNDLE EXACTLY.
-     - **Constraint**: Use Tailwind CSS (via CDN) or internal CSS for "Apple-like" clean design.
-     - **Constraint - LAYOUT & RESPONSIVENESS (CRITICAL)**: 
-       - The simulator MUST be fully responsive (Mobile, Tablet, Desktop).
-       - Use CSS Grid or Flexbox.
-       - **Desktop View**: Sidebar for controls (left or right), Canvas fills the rest.
-       - **Mobile View**: Stack controls below the canvas.
-       - The Canvas MUST resize dynamically (\`window.addEventListener('resize', ...)\`) to fill available space.
-     - **Constraint - PREVENT OVERLAPPING**:
-       - Do NOT use absolute positioning for layout structure, only for specific overlays.
-       - Ensure distinct, non-overlapping containers for "Visualization" and "Controls".
-       - **Reset Logic**: Your initialization code MUST clear any existing canvases/elements (\`container.innerHTML = ''\`) before drawing to prevent elements stacking on top of each other when resized or reset.
-     - **Context Awareness**: Use the concepts explained in the "Smart Notes" to inform the simulation logic and labels.
-     - **CRITICAL REQUIREMENT**: You MUST implement a **"Control Panel"** with actual \`<input type="range">\` sliders and \`<button>\` elements.
-     - **CRITICAL REQUIREMENT**: Hook these inputs to JavaScript variables so the simulation updates in **REAL-TIME**.
-     - **NEW FEATURE**: Add a **"Snapshot"** button in the control panel.
-     - **TOOLTIPS & EXPLANATIONS (REQUIRED)**:
-       - Every interactive control (input, button) MUST have a \`title\` attribute explaining its function (e.g. \`title="Controls the gravitational constant"\`).
-       - Add a small text label or "info" icon next to complex variables that reveals a brief explanation on hover.
-       - The simulator MUST be self-explanatory.
-     - **ANIMATION & VISUAL FEEDBACK (HIGH PRIORITY)**:
-       - **Smoothness**: Use \`requestAnimationFrame\` for the main loop. Implement linear interpolation (Lerp) for smooth movement of objects to prevent jitter.
-       - **UI Polish**: Use custom CSS for sliders (e.g., rounded tracks, larger thumbs). Add hover states and active states (scale/color shift) to all interactive elements.
-       - **Glassmorphism**: Use semi-transparent backgrounds with backdrop-blur for the control panel or overlay elements.
-       - **Transitions**: Use CSS transitions (\`transition: all 0.3s ease\`) for any DOM element changes.
-       - **Dynamic Feedback**: Display current values next to sliders. Add tooltips or small text indicators when values change.
-     - WRAP CODE in \`\`\`html\`\`\`.
+  ### DESIGN ARCHITECTURE: HYBRID UI
+  1. **Visualization Layer (Canvas)**: Use a full-screen \`<canvas>\` for the physics/visualization. It should be the background.
+  2. **Control Layer (HTML Overlay)**: Do NOT draw UI controls on the canvas. Instead, create a floating HTML \`div\` (Sidebar or Floating Card) positioned over the canvas using absolute positioning.
+  3. **Style (Glassmorphism)**: The Control Panel should use \`backdrop-blur-md\`, \`bg-white/10\`, and white text. Use Tailwind CSS for all styling.
+  
+  ### LAYOUT & RESPONSIVENESS
+  - The Canvas must resize dynamically to fill the window (\`window.addEventListener('resize', ...)\`).
+  - The Control Panel should be collapsible or neatly positioned (e.g., \`top-4 left-4 w-80\`).
+  
+  ### FUNCTIONALITY
+  - **Inputs**: Use native \`<input type="range">\` sliders for smooth interaction. Connect them to the physics variables in real-time.
+  - **Physics Loop**: Use \`requestAnimationFrame\`.
+  - **Features**: 
+    - Include a "Reset" button.
+    - Show real-time values next to sliders.
+    - Add tooltips to variables.
+  
+  ### CRITIC_MODE: CHECKS
+  - **Visual Check**: Are components overlapping? Ensure the canvas z-index is 0 and UI z-index is 10.
+  - **Physics Check**: Ensure variables like 'speed' or 'gravity' can't be set to values that break the sim (e.g. 0 or Infinity).
+  
+  ### OUTPUT
+  Return ONLY the valid HTML code wrapped in \`\`\`html\`\`\`.
+  The script must be embedded and execute immediately.
   `;
 
   try {
+     logProgress("Stage 3: Running Stress Tests...", "85%");
+     
+     const parts: any[] = [];
+     if (approvedPlan) parts.push({ text: `GAME DESIGN DOC:\n${approvedPlan}` });
+     if (smartNotes) parts.push({ text: `PHYSICS CONTEXT:\n${smartNotes}` });
+     
+     let prompt = "Generate the HTML5 Simulator now. Ensure the UI is Modern Glassmorphism using Tailwind.";
+     if (customInstruction) {
+         prompt += `\n\nUSER OVERRIDE/CUSTOM INSTRUCTIONS: ${customInstruction}`;
+     }
+     parts.push({ text: prompt });
+
      const response = await generateContentWithFallback(model, {
       contents: { 
-        parts: [
-          { text: `ATTACHED RESEARCH CONTEXT (Architecture Plan):\n${approvedPlan}` },
-          { text: `ATTACHED CONTENT (Smart Notes):\n${smartNotes}` },
-          { text: "Proceed to generate the Interactive Simulator HTML5 code based on the attached research." }
-        ] 
+        parts
       },
       config: {
         systemInstruction: systemPrompt,
-        // High budget for complex coding
+        // High budget for self-correction and grid calculation
         thinkingConfig: { thinkingBudget: 32768 }, 
       },
     });
 
+    logProgress("Stage 3: Deployment", "100%");
     const text = response.text || "";
     const match = text.match(/```html([\s\S]*?)```/);
-    return match ? match[1] : "";
+    return match ? match[1] : text;
 
   } catch (error) {
     console.error("Simulator Gen Error:", error);
@@ -306,19 +303,13 @@ export const generateStudySimulator = async (
   }
 };
 
-// --- Feature 3: Instant Quiz Generator ---
+// --- QUIZ & EXTRAS ---
+
 export const generateQuiz = async (context: string): Promise<QuizQuestion[]> => {
     const ai = getAiClient();
     const model = 'gemini-2.5-flash';
-
-    const prompt = `
-    Based on the following study notes, generate 5 multiple-choice questions (MCQs).
-    The questions should test conceptual understanding and critical thinking.
-
-    STUDY CONTENT:
-    ${context.slice(0, 10000)}
-    `;
-
+    const prompt = `Generate 5 high-quality MCQs from this text: ${context.slice(0, 5000)}`;
+    
     try {
         const response = await ai.models.generateContent({
             model,
@@ -341,16 +332,12 @@ export const generateQuiz = async (context: string): Promise<QuizQuestion[]> => 
                 }
             }
         });
-
-        const jsonString = response.text || "[]";
-        return JSON.parse(jsonString);
+        return JSON.parse(response.text || "[]");
     } catch (e) {
-        console.error("Quiz Gen Error", e);
         return [];
     }
 };
 
-// --- Feature 2: Deep Dive Discussion ---
 export const queryDeepDive = async (
     history: DeepDiveMessage[], 
     context: string,
@@ -359,22 +346,8 @@ export const queryDeepDive = async (
     const ai = getAiClient();
     const model = 'gemini-2.5-flash';
 
-    const systemPrompt = `
-    You are an expert tutor in the "Deep Dive" workspace.
-    Your goal is to clarify doubts, correct misconceptions, and explain concepts deeply based on the provided study notes.
-    
-    CONTEXT (The Lesson):
-    ${context.slice(0, 5000)}
+    const systemPrompt = `You are a helpful tutor. Explain concepts using the context provided. Use LaTeX for math. Context: ${context.slice(0, 5000)}`;
 
-    GUIDELINES:
-    - Be encouraging and precise.
-    - If the user has a misconception, gently correct it with an example.
-    - Use analogies where possible.
-    - Keep answers concise unless asked for elaboration.
-    - **FORMATTING**: Always use standard LaTeX ($$ ... $$) for formulas. Use Blockquotes (> ) for text definitions.
-    `;
-
-    // Convert history to API format
     const contents = [
         ...history.map(msg => ({
             role: msg.role === 'user' ? 'user' : 'model',
@@ -392,23 +365,7 @@ export const queryDeepDive = async (
     return response.text || "I couldn't generate a response.";
 };
 
-// --- Transcription ---
-
-export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
-  const ai = getAiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: {
-      parts: [
-        { inlineData: { data: base64Audio, mimeType: mimeType } },
-        { text: "Transcribe this audio accurately." }
-      ]
-    }
-  });
-  return response.text || "";
-};
-
-// --- Image Generation (Nano Banana Pro) ---
+// --- MEDIA GENERATION UTILS ---
 
 export const generateImage = async (
   prompt: string, 
@@ -416,46 +373,25 @@ export const generateImage = async (
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9"
 ): Promise<string> => {
   const ai = getAiClient();
-
-  // Smart Model Selection:
-  // - "1K" uses 'gemini-2.5-flash-image' (Nano Banana) for fast, standard generation (no size config supported).
-  // - "2K"/"4K" uses 'gemini-3-pro-image-preview' for high fidelity (supports imageSize).
   const isPro = size === '2K' || size === '4K';
   const model = isPro ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
 
-  const imageConfig: any = {
-    aspectRatio: aspectRatio
-  };
-
-  // Only Pro model supports explicit imageSize configuration
-  if (isPro) {
-    imageConfig.imageSize = size;
-  }
+  const imageConfig: any = { aspectRatio };
+  if (isPro) imageConfig.imageSize = size;
 
   const response = await generateContentWithFallback(model, {
     contents: { parts: [{ text: prompt }] },
-    config: {
-      imageConfig: imageConfig
-    }
+    config: { imageConfig }
   });
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
+    if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
   }
   throw new Error("No image generated");
 };
 
-// --- Image Editing (Nano Banana) ---
-
-export const editImage = async (
-  base64Image: string,
-  mimeType: string,
-  prompt: string
-): Promise<string> => {
+export const editImage = async (base64Image: string, mimeType: string, prompt: string): Promise<string> => {
   const ai = getAiClient();
-  // Using gemini-2.5-flash-image for editing (Nano Banana)
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
     contents: {
@@ -467,14 +403,10 @@ export const editImage = async (
   });
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
+    if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
   }
   throw new Error("No edited image generated");
 };
-
-// --- Veo Video Generation ---
 
 export const generateVeoVideo = async (
   prompt: string,
@@ -482,45 +414,33 @@ export const generateVeoVideo = async (
   inputImageMime?: string,
   aspectRatio: '16:9' | '9:16' = '16:9'
 ): Promise<string> => {
-    
-  // Important: Create new instance to pick up latest key if user just selected one
   const ai = getAiClient(); 
   
-  let config: any = {
-    numberOfVideos: 1,
-    resolution: '1080p',
-    aspectRatio: aspectRatio
-  };
-
   let params: any = {
     model: 'veo-3.1-fast-generate-preview',
     prompt: prompt,
-    config: config
+    config: {
+        numberOfVideos: 1,
+        resolution: '1080p',
+        aspectRatio: aspectRatio
+    }
   };
 
   if (inputImageBase64 && inputImageMime) {
-     params.image = {
-        imageBytes: inputImageBase64,
-        mimeType: inputImageMime
-     };
+     params.image = { imageBytes: inputImageBase64, mimeType: inputImageMime };
   }
   
   try {
       let operation = await ai.models.generateVideos(params);
-
       while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Poll every 5s
+        await sleep(5000);
         operation = await ai.operations.getVideosOperation({ operation: operation });
       }
-
       const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (!uri) throw new Error("Video generation failed or no URI returned");
-      
+      if (!uri) throw new Error("Video generation failed");
       return uri;
   } catch (error: any) {
-      if (error.message?.includes("404") || error.message?.includes("not found")) {
-          throw new Error("Veo model not available with current API Key. This feature requires a specific paid tier or region.");
-      }
+      if (error.message?.includes("404")) throw new Error("Veo model requires paid tier.");
       throw error;
   }
 };
